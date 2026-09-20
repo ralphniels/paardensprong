@@ -13,6 +13,7 @@ if (!isset($_SESSION['csrf_token'])) {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="<?= htmlspecialchars($_SESSION['csrf_token'], ENT_QUOTES, 'UTF-8') ?>">
     <title>Paardensprong</title>
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -40,11 +41,6 @@ if (!isset($_SESSION['csrf_token'])) {
     </section>
 </main>
 
-<script>
-    window.APP_CONFIG = {
-        csrfToken: <?= json_encode($_SESSION['csrf_token'], JSON_THROW_ON_ERROR) ?>
-    };
-</script>
 <script src="app.js" defer></script>
 </body>
 </html>

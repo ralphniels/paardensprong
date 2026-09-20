@@ -148,7 +148,14 @@ if ($action === 'delete') {
 
     rewind($handle);
     $content = stream_get_contents($handle);
-    $words = parseWordsFromText($content === false ? '' : $content);
+
+    if ($content === false) {
+        flock($handle, LOCK_UN);
+        fclose($handle);
+        jsonResponse(['ok' => false, 'message' => 'Kon de woordenlijst niet lezen.'], 500);
+    }
+
+    $words = parseWordsFromText($content);
     $filteredWords = array_values(array_filter($words, static fn (string $candidate): bool => mb_strtolower($candidate) !== mb_strtolower($word)));
 
     if (count($filteredWords) === count($words)) {

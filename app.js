@@ -13,7 +13,7 @@ const backspaceButton = document.getElementById('backspace');
 const showSolutionButton = document.getElementById('show-solution');
 const restartButton = document.getElementById('restart');
 const deleteWordButton = document.getElementById('delete-word');
-const csrfToken = window.APP_CONFIG?.csrfToken ?? '';
+const csrfToken = document.querySelector('meta[name=\"csrf-token\"]')?.content ?? '';
 
 const state = {
     answer: '',
