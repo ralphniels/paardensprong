@@ -13,6 +13,7 @@ const backspaceButton = document.getElementById('backspace');
 const showSolutionButton = document.getElementById('show-solution');
 const restartButton = document.getElementById('restart');
 const deleteWordButton = document.getElementById('delete-word');
+const csrfToken = window.APP_CONFIG?.csrfToken ?? '';
 
 const state = {
     answer: '',
@@ -97,6 +98,8 @@ function renderBoard() {
         button.type = 'button';
         button.className = 'cell';
         button.textContent = letter ?? '';
+        button.setAttribute('aria-label', `Vak ${position + 1}, letter ${letter ?? 'leeg'}`);
+        button.setAttribute('aria-selected', selected.has(position) ? 'true' : 'false');
 
         if (!letter) {
             button.disabled = true;
@@ -156,23 +159,34 @@ function loadPuzzle(puzzle) {
 
 async function fetchPuzzle() {
     statusText.textContent = 'Nieuw spel laden…';
+    try {
+        const response = await fetch('api.php?action=puzzle');
+        const data = await response.json();
 
-    const response = await fetch('api.php?action=puzzle');
-    const data = await response.json();
+        if (!data.ok) {
+            state.answer = '';
+            state.layout = [];
+            state.solutionPositions = [];
+            state.selectedPositions = [];
+            state.revealed = false;
+            state.solved = false;
+            updateStatus();
+            renderBoard();
+            return;
+        }
 
-    if (!data.ok) {
+        loadPuzzle(data.puzzle);
+    } catch (error) {
         state.answer = '';
         state.layout = [];
         state.solutionPositions = [];
         state.selectedPositions = [];
         state.revealed = false;
         state.solved = false;
-        updateStatus();
+        guess.textContent = '........';
+        statusText.textContent = 'Kon geen nieuw spel laden. Probeer het opnieuw.';
         renderBoard();
-        return;
     }
-
-    loadPuzzle(data.puzzle);
 }
 
 async function deleteCurrentWord() {
@@ -185,36 +199,41 @@ async function deleteCurrentWord() {
         return;
     }
 
-    const response = await fetch('api.php?action=delete', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ word: state.answer.toLowerCase() }),
-    });
+    try {
+        const response = await fetch('api.php?action=delete', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken,
+            },
+            body: JSON.stringify({ word: state.answer.toLowerCase() }),
+        });
 
-    const data = await response.json();
+        const data = await response.json();
 
-    if (!data.ok) {
-        statusText.textContent = data.message;
-        return;
+        if (!data.ok) {
+            statusText.textContent = data.message;
+            return;
+        }
+
+        if (data.puzzle) {
+            loadPuzzle(data.puzzle);
+            statusText.textContent = `${data.removedWord} verwijderd. Nieuw woord geladen.`;
+            return;
+        }
+
+        state.answer = '';
+        state.layout = [];
+        state.solutionPositions = [];
+        state.selectedPositions = [];
+        state.revealed = false;
+        state.solved = false;
+        updateStatus();
+        renderBoard();
+        statusText.textContent = `${data.removedWord} verwijderd. Er zijn geen woorden meer beschikbaar.`;
+    } catch (error) {
+        statusText.textContent = 'Verwijderen is mislukt. Probeer het opnieuw.';
     }
-
-    if (data.puzzle) {
-        loadPuzzle(data.puzzle);
-        statusText.textContent = `${data.removedWord} verwijderd. Nieuw woord geladen.`;
-        return;
-    }
-
-    state.answer = '';
-    state.layout = [];
-    state.solutionPositions = [];
-    state.selectedPositions = [];
-    state.revealed = false;
-    state.solved = false;
-    updateStatus();
-    renderBoard();
-    statusText.textContent = `${data.removedWord} verwijderd. Er zijn geen woorden meer beschikbaar.`;
 }
 
 board.addEventListener('click', (event) => {

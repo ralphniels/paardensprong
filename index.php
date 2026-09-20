@@ -1,3 +1,13 @@
+<?php
+
+declare(strict_types=1);
+
+session_start();
+
+if (!isset($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+?>
 <!DOCTYPE html>
 <html lang="nl">
 <head>
@@ -12,7 +22,7 @@
         <h1>Paardensprong</h1>
         <p>Maak het Nederlandse woord van 8 letters door alleen geldige paardensprongen te volgen.</p>
 
-        <div id="board" class="board" aria-label="Paardensprong bord"></div>
+        <div id="board" class="board" role="grid" aria-label="Paardensprong bord"></div>
 
         <div class="guess">
             <span class="label">Jouw oplossing</span>
@@ -30,6 +40,11 @@
     </section>
 </main>
 
+<script>
+    window.APP_CONFIG = {
+        csrfToken: <?= json_encode($_SESSION['csrf_token'], JSON_THROW_ON_ERROR) ?>
+    };
+</script>
 <script src="app.js" defer></script>
 </body>
 </html>

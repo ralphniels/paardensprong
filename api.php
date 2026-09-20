@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+session_start();
+
 header('Content-Type: application/json; charset=utf-8');
 
 const WORDS_FILE = __DIR__ . '/woorden_8_letters.txt';
@@ -32,6 +34,13 @@ function jsonResponse(array $payload, int $statusCode = 200): never
     http_response_code($statusCode);
     echo json_encode($payload, JSON_THROW_ON_ERROR);
     exit;
+}
+
+function isLocalRequest(): bool
+{
+    $remoteAddress = $_SERVER['REMOTE_ADDR'] ?? '';
+
+    return in_array($remoteAddress, ['127.0.0.1', '::1'], true);
 }
 
 function createPuzzle(string $word): array
@@ -97,6 +106,17 @@ if ($action === 'delete') {
         jsonResponse(['ok' => false, 'message' => 'Gebruik POST om een woord te verwijderen.'], 405);
     }
 
+    if (!isLocalRequest()) {
+        jsonResponse(['ok' => false, 'message' => 'Woorden verwijderen mag alleen vanaf de lokale server.'], 403);
+    }
+
+    $csrfToken = (string) ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? '');
+    $sessionToken = (string) ($_SESSION['csrf_token'] ?? '');
+
+    if ($csrfToken === '' || $sessionToken === '' || !hash_equals($sessionToken, $csrfToken)) {
+        jsonResponse(['ok' => false, 'message' => 'Ongeldige beveiligingscontrole voor verwijderen.'], 403);
+    }
+
     $input = json_decode(file_get_contents('php://input') ?: '{}', true);
     $word = is_array($input) ? trim((string) ($input['word'] ?? '')) : '';
 
@@ -112,7 +132,11 @@ if ($action === 'delete') {
     }
 
     $content = $filteredWords === [] ? '' : implode(PHP_EOL, $filteredWords) . PHP_EOL;
-    file_put_contents(WORDS_FILE, $content, LOCK_EX);
+    $bytesWritten = file_put_contents(WORDS_FILE, $content, LOCK_EX);
+
+    if ($bytesWritten === false) {
+        jsonResponse(['ok' => false, 'message' => 'Kon de woordenlijst niet bijwerken.'], 500);
+    }
 
     $response = [
         'ok' => true,
