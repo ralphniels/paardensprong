@@ -19,6 +19,7 @@ const state = {
     layout: [],
     solutionPositions: [],
     selectedPositions: [],
+    revealed: false,
     solved: false,
 };
 
@@ -59,6 +60,11 @@ function updateStatus() {
     guess.textContent = currentWord.padEnd(8, '.');
 
     if (state.solved) {
+        if (state.revealed) {
+            statusText.textContent = `Oplossing getoond: ${state.answer}.`;
+            return;
+        }
+
         statusText.textContent = `Goed gedaan! Het woord is ${state.answer}.`;
         return;
     }
@@ -142,6 +148,7 @@ function loadPuzzle(puzzle) {
     state.layout = puzzle.layout;
     state.solutionPositions = puzzle.solutionPositions;
     state.selectedPositions = [];
+    state.revealed = false;
     state.solved = false;
     updateStatus();
     renderBoard();
@@ -158,6 +165,7 @@ async function fetchPuzzle() {
         state.layout = [];
         state.solutionPositions = [];
         state.selectedPositions = [];
+        state.revealed = false;
         state.solved = false;
         updateStatus();
         renderBoard();
@@ -202,6 +210,7 @@ async function deleteCurrentWord() {
     state.layout = [];
     state.solutionPositions = [];
     state.selectedPositions = [];
+    state.revealed = false;
     state.solved = false;
     updateStatus();
     renderBoard();
@@ -219,6 +228,7 @@ board.addEventListener('click', (event) => {
 
 backspaceButton.addEventListener('click', () => {
     state.selectedPositions.pop();
+    state.revealed = false;
     state.solved = false;
     updateStatus();
     renderBoard();
@@ -226,6 +236,7 @@ backspaceButton.addEventListener('click', () => {
 
 showSolutionButton.addEventListener('click', () => {
     state.selectedPositions = [...state.solutionPositions];
+    state.revealed = true;
     applySolvedState(true);
 });
 
