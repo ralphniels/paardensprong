@@ -160,12 +160,26 @@ if ($action === 'delete') {
     $content = $filteredWords === [] ? '' : implode(PHP_EOL, $filteredWords) . PHP_EOL;
     rewind($handle);
     ftruncate($handle, 0);
-    $bytesWritten = fwrite($handle, $content);
 
-    if ($bytesWritten === false) {
+    $totalBytes = strlen($content);
+    $writtenBytes = 0;
+
+    while ($writtenBytes < $totalBytes) {
+        $chunk = fwrite($handle, substr($content, $writtenBytes));
+
+        if ($chunk === false || $chunk === 0) {
+            flock($handle, LOCK_UN);
+            fclose($handle);
+            jsonResponse(['ok' => false, 'message' => 'Kon de woordenlijst niet volledig bijwerken.'], 500);
+        }
+
+        $writtenBytes += $chunk;
+    }
+
+    if ($writtenBytes !== $totalBytes) {
         flock($handle, LOCK_UN);
         fclose($handle);
-        jsonResponse(['ok' => false, 'message' => 'Kon de woordenlijst niet bijwerken.'], 500);
+        jsonResponse(['ok' => false, 'message' => 'Kon de woordenlijst niet volledig bijwerken.'], 500);
     }
 
     fflush($handle);
