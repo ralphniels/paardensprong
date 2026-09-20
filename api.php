@@ -29,6 +29,17 @@ function isValidWord(string $word): bool
     return preg_match('/^\p{L}{8}$/u', $word) === 1;
 }
 
+function parseWordsFromText(string $content): array
+{
+    $lines = preg_split('/\R/u', $content);
+
+    if ($lines === false) {
+        return [];
+    }
+
+    return array_values(array_filter(array_map('trim', $lines), static fn (string $word): bool => isValidWord($word)));
+}
+
 function jsonResponse(array $payload, int $statusCode = 200): never
 {
     http_response_code($statusCode);
@@ -124,19 +135,42 @@ if ($action === 'delete') {
         jsonResponse(['ok' => false, 'message' => 'Alleen woorden van precies 8 letters kunnen worden verwijderd.'], 422);
     }
 
-    $words = readWords();
+    $handle = fopen(WORDS_FILE, 'c+');
+
+    if ($handle === false) {
+        jsonResponse(['ok' => false, 'message' => 'Kon de woordenlijst niet openen.'], 500);
+    }
+
+    if (!flock($handle, LOCK_EX)) {
+        fclose($handle);
+        jsonResponse(['ok' => false, 'message' => 'Kon de woordenlijst niet vergrendelen.'], 500);
+    }
+
+    rewind($handle);
+    $content = stream_get_contents($handle);
+    $words = parseWordsFromText($content === false ? '' : $content);
     $filteredWords = array_values(array_filter($words, static fn (string $candidate): bool => mb_strtolower($candidate) !== mb_strtolower($word)));
 
     if (count($filteredWords) === count($words)) {
+        flock($handle, LOCK_UN);
+        fclose($handle);
         jsonResponse(['ok' => false, 'message' => 'Woord niet gevonden in de lijst.'], 404);
     }
 
     $content = $filteredWords === [] ? '' : implode(PHP_EOL, $filteredWords) . PHP_EOL;
-    $bytesWritten = file_put_contents(WORDS_FILE, $content, LOCK_EX);
+    rewind($handle);
+    ftruncate($handle, 0);
+    $bytesWritten = fwrite($handle, $content);
 
     if ($bytesWritten === false) {
+        flock($handle, LOCK_UN);
+        fclose($handle);
         jsonResponse(['ok' => false, 'message' => 'Kon de woordenlijst niet bijwerken.'], 500);
     }
+
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
 
     $response = [
         'ok' => true,

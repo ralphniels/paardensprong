@@ -24,6 +24,15 @@ const state = {
     solved: false,
 };
 
+function resetState() {
+    state.answer = '';
+    state.layout = [];
+    state.solutionPositions = [];
+    state.selectedPositions = [];
+    state.revealed = false;
+    state.solved = false;
+}
+
 function getLetter(position) {
     return state.layout[position] ?? '';
 }
@@ -157,32 +166,33 @@ function loadPuzzle(puzzle) {
     renderBoard();
 }
 
+async function parseJsonResponse(response) {
+    const text = await response.text();
+
+    if (!text) {
+        return {};
+    }
+
+    return JSON.parse(text);
+}
+
 async function fetchPuzzle() {
     statusText.textContent = 'Nieuw spel laden…';
     try {
         const response = await fetch('api.php?action=puzzle');
-        const data = await response.json();
+        const data = await parseJsonResponse(response);
 
-        if (!data.ok) {
-            state.answer = '';
-            state.layout = [];
-            state.solutionPositions = [];
-            state.selectedPositions = [];
-            state.revealed = false;
-            state.solved = false;
-            updateStatus();
+        if (!response.ok || !data.ok) {
+            resetState();
+            guess.textContent = '........';
+            statusText.textContent = data.message ?? 'Kon geen nieuw spel laden. Probeer het opnieuw.';
             renderBoard();
             return;
         }
 
         loadPuzzle(data.puzzle);
     } catch (error) {
-        state.answer = '';
-        state.layout = [];
-        state.solutionPositions = [];
-        state.selectedPositions = [];
-        state.revealed = false;
-        state.solved = false;
+        resetState();
         guess.textContent = '........';
         statusText.textContent = 'Kon geen nieuw spel laden. Probeer het opnieuw.';
         renderBoard();
@@ -209,10 +219,10 @@ async function deleteCurrentWord() {
             body: JSON.stringify({ word: state.answer.toLowerCase() }),
         });
 
-        const data = await response.json();
+        const data = await parseJsonResponse(response);
 
-        if (!data.ok) {
-            statusText.textContent = data.message;
+        if (!response.ok || !data.ok) {
+            statusText.textContent = data.message ?? 'Verwijderen is mislukt. Probeer het opnieuw.';
             return;
         }
 
@@ -222,12 +232,7 @@ async function deleteCurrentWord() {
             return;
         }
 
-        state.answer = '';
-        state.layout = [];
-        state.solutionPositions = [];
-        state.selectedPositions = [];
-        state.revealed = false;
-        state.solved = false;
+        resetState();
         updateStatus();
         renderBoard();
         statusText.textContent = `${data.removedWord} verwijderd. Er zijn geen woorden meer beschikbaar.`;
