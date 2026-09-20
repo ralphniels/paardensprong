@@ -191,7 +191,7 @@ async function parseJsonResponse(response) {
     return JSON.parse(text);
 }
 
-async function fetchPuzzle() {
+async function fetchPuzzle(statusMessage = '') {
     statusText.textContent = 'Nieuw spel laden…';
     try {
         const response = await fetch('api.php?action=puzzle');
@@ -202,15 +202,17 @@ async function fetchPuzzle() {
             guess.textContent = '........';
             statusText.textContent = data.message ?? 'Kon geen nieuw spel laden. Probeer het opnieuw.';
             renderBoard();
-            return;
+            return false;
         }
 
-        loadPuzzle(data.puzzle);
+        loadPuzzle(data.puzzle, statusMessage);
+        return true;
     } catch (error) {
         resetState();
         guess.textContent = '........';
         statusText.textContent = 'Kon geen nieuw spel laden. Probeer het opnieuw.';
         renderBoard();
+        return false;
     }
 }
 
@@ -243,6 +245,16 @@ async function deleteCurrentWord() {
 
         if (isValidPuzzle(data.puzzle)) {
             loadPuzzle(data.puzzle, `${data.removedWord} verwijderd. Nieuw woord geladen.`);
+            return;
+        }
+
+        if (data.remainingWords > 0) {
+            const loaded = await fetchPuzzle(`${data.removedWord} verwijderd. Nieuw woord geladen.`);
+
+            if (!loaded) {
+                statusText.textContent = data.message ?? 'Woord verwijderd, maar een nieuw woord laden mislukte.';
+            }
+
             return;
         }
 
