@@ -155,7 +155,7 @@ function selectPosition(position) {
     renderBoard();
 }
 
-function loadPuzzle(puzzle) {
+function loadPuzzle(puzzle, statusMessage = '') {
     state.answer = puzzle.answer;
     state.layout = puzzle.layout;
     state.solutionPositions = puzzle.solutionPositions;
@@ -164,6 +164,10 @@ function loadPuzzle(puzzle) {
     state.solved = false;
     updateStatus();
     renderBoard();
+
+    if (statusMessage) {
+        statusText.textContent = statusMessage;
+    }
 }
 
 async function parseJsonResponse(response) {
@@ -227,8 +231,7 @@ async function deleteCurrentWord() {
         }
 
         if (data.puzzle) {
-            loadPuzzle(data.puzzle);
-            statusText.textContent = `${data.removedWord} verwijderd. Nieuw woord geladen.`;
+            loadPuzzle(data.puzzle, `${data.removedWord} verwijderd. Nieuw woord geladen.`);
             return;
         }
 
