@@ -170,6 +170,17 @@ function loadPuzzle(puzzle, statusMessage = '') {
     }
 }
 
+function isValidPuzzle(puzzle) {
+    return Boolean(
+        puzzle &&
+        typeof puzzle.answer === 'string' &&
+        Array.isArray(puzzle.layout) &&
+        puzzle.layout.length === 9 &&
+        Array.isArray(puzzle.solutionPositions) &&
+        puzzle.solutionPositions.length === 8
+    );
+}
+
 async function parseJsonResponse(response) {
     const text = await response.text();
 
@@ -186,7 +197,7 @@ async function fetchPuzzle() {
         const response = await fetch('api.php?action=puzzle');
         const data = await parseJsonResponse(response);
 
-        if (!response.ok || !data.ok) {
+        if (!response.ok || !data.ok || !isValidPuzzle(data.puzzle)) {
             resetState();
             guess.textContent = '........';
             statusText.textContent = data.message ?? 'Kon geen nieuw spel laden. Probeer het opnieuw.';
@@ -230,7 +241,7 @@ async function deleteCurrentWord() {
             return;
         }
 
-        if (data.puzzle) {
+        if (isValidPuzzle(data.puzzle)) {
             loadPuzzle(data.puzzle, `${data.removedWord} verwijderd. Nieuw woord geladen.`);
             return;
         }

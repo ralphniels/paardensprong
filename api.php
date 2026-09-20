@@ -156,7 +156,7 @@ if ($action === 'delete') {
     }
 
     $words = parseWordsFromText($content);
-    $filteredWords = array_values(array_filter($words, static fn (string $candidate): bool => mb_strtolower($candidate) !== mb_strtolower($word)));
+    $filteredWords = array_values(array_filter($words, static fn (string $candidate): bool => mb_strtolower($candidate, 'UTF-8') !== mb_strtolower($word, 'UTF-8')));
 
     if (count($filteredWords) === count($words)) {
         flock($handle, LOCK_UN);
