@@ -135,7 +135,11 @@ if ($action === 'delete') {
         jsonResponse(['ok' => false, 'message' => 'Alleen woorden van precies 8 letters kunnen worden verwijderd.'], 422);
     }
 
-    $handle = fopen(WORDS_FILE, 'c+');
+    if (!is_file(WORDS_FILE)) {
+        jsonResponse(['ok' => false, 'message' => 'De woordenlijst ontbreekt.'], 500);
+    }
+
+    $handle = fopen(WORDS_FILE, 'r+');
 
     if ($handle === false) {
         jsonResponse(['ok' => false, 'message' => 'Kon de woordenlijst niet openen.'], 500);

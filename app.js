@@ -249,12 +249,7 @@ async function deleteCurrentWord() {
         }
 
         if (data.remainingWords > 0) {
-            const loaded = await fetchPuzzle(`${data.removedWord} verwijderd. Nieuw woord geladen.`);
-
-            if (!loaded) {
-                statusText.textContent = data.message ?? 'Woord verwijderd, maar een nieuw woord laden mislukte.';
-            }
-
+            statusText.textContent = data.message ?? 'Woord verwijderd, maar een nieuw woord ontbreekt in de reactie.';
             return;
         }
 
