@@ -1,4 +1,5 @@
 const cycle = [0, 5, 6, 1, 8, 3, 2, 7];
+const AUTOCOMPLETE_DELAY_MS = 220;
 const adjacency = cycle.reduce((map, position, index) => {
     const previous = cycle[(index + cycle.length - 1) % cycle.length];
     const next = cycle[(index + 1) % cycle.length];
@@ -22,9 +23,21 @@ const state = {
     selectedPositions: [],
     revealed: false,
     solved: false,
+    autocompleteTimer: null,
+    autocompleting: false,
 };
 
+function cancelAutocomplete() {
+    if (state.autocompleteTimer !== null) {
+        window.clearTimeout(state.autocompleteTimer);
+        state.autocompleteTimer = null;
+    }
+
+    state.autocompleting = false;
+}
+
 function resetState() {
+    cancelAutocomplete();
     state.answer = '';
     state.layout = [];
     state.solutionPositions = [];
@@ -42,7 +55,7 @@ function getCurrentWord() {
 }
 
 function getSelectablePositions() {
-    if (state.solved || state.layout.length === 0) {
+    if (state.solved || state.autocompleting || state.layout.length === 0) {
         return [];
     }
 
@@ -91,6 +104,7 @@ function renderBoard() {
     board.innerHTML = '';
     const selectable = new Set(getSelectablePositions());
     const selected = new Set(state.selectedPositions);
+    const firstSelectedPosition = state.selectedPositions[0];
 
     for (let position = 0; position < 9; position += 1) {
         const letter = state.layout[position];
@@ -99,6 +113,7 @@ function renderBoard() {
             const hole = document.createElement('div');
             hole.className = 'cell empty';
             hole.setAttribute('aria-hidden', 'true');
+            hole.appendChild(createKnightIcon());
             board.appendChild(hole);
             continue;
         }
@@ -119,6 +134,10 @@ function renderBoard() {
 
         if (selected.has(position)) {
             button.classList.add('selected');
+
+            if (position === firstSelectedPosition) {
+                button.classList.add('first-selected');
+            }
         }
 
         if (!button.disabled && !selected.has(position)) {
@@ -134,9 +153,70 @@ function renderBoard() {
 }
 
 function applySolvedState(isSolved) {
+    cancelAutocomplete();
     state.solved = isSolved;
     updateStatus();
     renderBoard();
+}
+
+function getCompletedPath(startingPositions = state.selectedPositions) {
+    if (startingPositions.length < 2) {
+        return null;
+    }
+
+    const completedPath = [...startingPositions];
+    const used = new Set(completedPath);
+
+    while (completedPath.length < 8) {
+        const currentPosition = completedPath[completedPath.length - 1];
+        const nextPositions = adjacency[currentPosition].filter((position) => !used.has(position));
+
+        if (nextPositions.length !== 1) {
+            return null;
+        }
+
+        const [nextPosition] = nextPositions;
+        completedPath.push(nextPosition);
+        used.add(nextPosition);
+    }
+
+    return completedPath;
+}
+
+function scheduleAutocomplete() {
+    cancelAutocomplete();
+
+    const completedPath = getCompletedPath();
+    if (completedPath === null) {
+        return;
+    }
+
+    const completedWord = completedPath.map(getLetter).join('');
+    if (completedWord !== state.answer || completedPath.length === state.selectedPositions.length) {
+        return;
+    }
+
+    state.autocompleting = true;
+    updateStatus();
+    renderBoard();
+
+    state.autocompleteTimer = window.setTimeout(() => {
+        state.autocompleteTimer = null;
+
+        if (!state.autocompleting) {
+            return;
+        }
+
+        state.selectedPositions.push(completedPath[state.selectedPositions.length]);
+
+        if (state.selectedPositions.length === completedPath.length) {
+            applySolvedState(getCurrentWord() === state.answer);
+            return;
+        }
+
+        renderBoard();
+        scheduleAutocomplete();
+    }, AUTOCOMPLETE_DELAY_MS);
 }
 
 function selectPosition(position) {
@@ -144,6 +224,7 @@ function selectPosition(position) {
         return;
     }
 
+    cancelAutocomplete();
     state.selectedPositions.push(position);
 
     if (state.selectedPositions.length === 8 && getCurrentWord() === state.answer) {
@@ -153,9 +234,14 @@ function selectPosition(position) {
 
     updateStatus();
     renderBoard();
+
+    if (state.selectedPositions.length >= 2) {
+        scheduleAutocomplete();
+    }
 }
 
 function loadPuzzle(puzzle, statusMessage = '') {
+    cancelAutocomplete();
     state.answer = puzzle.answer;
     state.layout = puzzle.layout;
     state.solutionPositions = puzzle.solutionPositions;
@@ -272,6 +358,7 @@ board.addEventListener('click', (event) => {
 });
 
 backspaceButton.addEventListener('click', () => {
+    cancelAutocomplete();
     state.selectedPositions.pop();
     state.revealed = false;
     state.solved = false;
@@ -280,17 +367,41 @@ backspaceButton.addEventListener('click', () => {
 });
 
 showSolutionButton.addEventListener('click', () => {
+    cancelAutocomplete();
     state.selectedPositions = [...state.solutionPositions];
     state.revealed = true;
     applySolvedState(true);
 });
 
 restartButton.addEventListener('click', () => {
+    cancelAutocomplete();
     void fetchPuzzle();
 });
 
 deleteWordButton.addEventListener('click', () => {
+    cancelAutocomplete();
     void deleteCurrentWord();
 });
+
+function createKnightIcon() {
+    const namespace = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(namespace, 'svg');
+    const text = document.createElementNS(namespace, 'text');
+
+    svg.setAttribute('viewBox', '0 0 100 100');
+    svg.setAttribute('class', 'knight-icon');
+    svg.setAttribute('focusable', 'false');
+    svg.setAttribute('aria-hidden', 'true');
+
+    text.setAttribute('x', '50');
+    text.setAttribute('y', '76');
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('font-size', '76');
+    text.setAttribute('font-family', 'Times New Roman, serif');
+    text.textContent = '♞';
+
+    svg.appendChild(text);
+    return svg;
+}
 
 void fetchPuzzle();
