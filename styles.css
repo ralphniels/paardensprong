@@ -79,9 +79,15 @@ h1 {
 }
 
 .knight-icon {
+    color: #1f2933;
     width: 70%;
     height: 70%;
-    fill: #1f2933;
+}
+
+@media (forced-colors: active) {
+    .knight-icon {
+        color: CanvasText;
+    }
 }
 
 .cell:disabled {

@@ -25,13 +25,18 @@ const state = {
     revealed: false,
     solved: false,
     autocompleteTimer: null,
+    autocompleteStartLength: 0,
     autocompleting: false,
 };
 
-function cancelAutocomplete() {
+function cancelAutocomplete(resetStartLength = true) {
     if (state.autocompleteTimer !== null) {
         window.clearTimeout(state.autocompleteTimer);
         state.autocompleteTimer = null;
+    }
+
+    if (resetStartLength) {
+        state.autocompleteStartLength = 0;
     }
 
     state.autocompleting = false;
@@ -184,8 +189,18 @@ function getCompletedPath(startingPositions = state.selectedPositions) {
     return completedPath;
 }
 
-function scheduleAutocomplete() {
+function rewindAutocompleteAttempt() {
+    if (state.autocompleteStartLength > 0) {
+        state.selectedPositions = state.selectedPositions.slice(0, state.autocompleteStartLength);
+    }
+
     cancelAutocomplete();
+    updateStatus();
+    renderBoard();
+}
+
+function scheduleAutocomplete(preserveStartLength = false) {
+    cancelAutocomplete(!preserveStartLength);
 
     const completedPath = getCompletedPath();
     if (completedPath === null) {
@@ -195,6 +210,10 @@ function scheduleAutocomplete() {
     const completedWord = completedPath.map(getLetter).join('');
     if (completedWord !== state.answer || completedPath.length === state.selectedPositions.length) {
         return;
+    }
+
+    if (!preserveStartLength) {
+        state.autocompleteStartLength = state.selectedPositions.length;
     }
 
     state.autocompleting = true;
@@ -215,9 +234,7 @@ function scheduleAutocomplete() {
                 .every((position, index) => position === state.selectedPositions[index]);
 
         if (nextCompletedPath === null || !currentSelectionMatches || nextCompletedPath.map(getLetter).join('') !== state.answer) {
-            cancelAutocomplete();
-            updateStatus();
-            renderBoard();
+            rewindAutocompleteAttempt();
             return;
         }
 
@@ -225,12 +242,17 @@ function scheduleAutocomplete() {
         updateStatus();
 
         if (state.selectedPositions.length === nextCompletedPath.length) {
-            applySolvedState(getCurrentWord() === state.answer);
+            if (getCurrentWord() === state.answer) {
+                applySolvedState(true);
+                return;
+            }
+
+            rewindAutocompleteAttempt();
             return;
         }
 
         renderBoard();
-        scheduleAutocomplete();
+        scheduleAutocomplete(true);
     }, AUTOCOMPLETE_DELAY_MS);
 }
 
@@ -414,6 +436,7 @@ function createKnightIcon() {
         text.setAttribute('text-anchor', 'middle');
         text.setAttribute('font-size', '76');
         text.setAttribute('font-family', 'Times New Roman, serif');
+        text.setAttribute('fill', 'currentColor');
         text.textContent = '♞';
 
         svg.appendChild(text);
