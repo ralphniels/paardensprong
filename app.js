@@ -113,7 +113,6 @@ function renderBoard() {
             const hole = document.createElement('div');
             hole.className = 'cell empty';
             hole.setAttribute('aria-hidden', 'true');
-            hole.appendChild(createKnightIcon());
             board.appendChild(hole);
             continue;
         }
@@ -207,9 +206,22 @@ function scheduleAutocomplete() {
             return;
         }
 
-        state.selectedPositions.push(completedPath[state.selectedPositions.length]);
+        const nextCompletedPath = getCompletedPath();
+        const currentSelectionMatches = nextCompletedPath !== null
+            && nextCompletedPath
+                .slice(0, state.selectedPositions.length)
+                .every((position, index) => position === state.selectedPositions[index]);
 
-        if (state.selectedPositions.length === completedPath.length) {
+        if (nextCompletedPath === null || !currentSelectionMatches || nextCompletedPath.map(getLetter).join('') !== state.answer) {
+            cancelAutocomplete();
+            updateStatus();
+            renderBoard();
+            return;
+        }
+
+        state.selectedPositions.push(nextCompletedPath[state.selectedPositions.length]);
+
+        if (state.selectedPositions.length === nextCompletedPath.length) {
             applySolvedState(getCurrentWord() === state.answer);
             return;
         }
@@ -382,26 +394,5 @@ deleteWordButton.addEventListener('click', () => {
     cancelAutocomplete();
     void deleteCurrentWord();
 });
-
-function createKnightIcon() {
-    const namespace = 'http://www.w3.org/2000/svg';
-    const svg = document.createElementNS(namespace, 'svg');
-    const text = document.createElementNS(namespace, 'text');
-
-    svg.setAttribute('viewBox', '0 0 100 100');
-    svg.setAttribute('class', 'knight-icon');
-    svg.setAttribute('focusable', 'false');
-    svg.setAttribute('aria-hidden', 'true');
-
-    text.setAttribute('x', '50');
-    text.setAttribute('y', '76');
-    text.setAttribute('text-anchor', 'middle');
-    text.setAttribute('font-size', '76');
-    text.setAttribute('font-family', 'Times New Roman, serif');
-    text.textContent = '♞';
-
-    svg.appendChild(text);
-    return svg;
-}
 
 void fetchPuzzle();
