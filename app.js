@@ -189,14 +189,18 @@ function getCompletedPath(startingPositions = state.selectedPositions) {
     return completedPath;
 }
 
+function stopAutocomplete() {
+    cancelAutocomplete();
+    updateStatus();
+    renderBoard();
+}
+
 function rewindAutocompleteAttempt() {
     if (state.autocompleteStartLength > 0) {
         state.selectedPositions = state.selectedPositions.slice(0, state.autocompleteStartLength);
     }
 
-    cancelAutocomplete();
-    updateStatus();
-    renderBoard();
+    stopAutocomplete();
 }
 
 function scheduleAutocomplete(preserveStartLength = false) {
@@ -234,7 +238,7 @@ function scheduleAutocomplete(preserveStartLength = false) {
                 .every((position, index) => position === state.selectedPositions[index]);
 
         if (nextCompletedPath === null || !currentSelectionMatches || nextCompletedPath.map(getLetter).join('') !== state.answer) {
-            rewindAutocompleteAttempt();
+            stopAutocomplete();
             return;
         }
 
