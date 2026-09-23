@@ -113,8 +113,7 @@ function renderBoard() {
         if (position === 4) {
             const hole = document.createElement('div');
             hole.className = 'cell empty';
-            hole.setAttribute('role', 'img');
-            hole.setAttribute('aria-label', 'Vrij veld met paard');
+            hole.setAttribute('aria-hidden', 'true');
             hole.appendChild(createKnightIcon());
             board.appendChild(hole);
             continue;
