@@ -5,12 +5,13 @@ declare(strict_types=1);
 if ($_SERVER['SERVER_NAME'] == 'localhost') {
     error_reporting(E_ALL);
     ini_set('display_errors', 1);
+    session_start();
+
 } else {
     require_once("../inloggen/inloggen.php");
 }
 
 
-session_start();
 
 if (!isset($_SESSION['csrf_token'])) {
     $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
