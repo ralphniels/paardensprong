@@ -1,5 +1,6 @@
 const cycle = [0, 5, 6, 1, 8, 3, 2, 7];
 const AUTOCOMPLETE_DELAY_MS = 220;
+let knightIconTemplate = null;
 const adjacency = cycle.reduce((map, position, index) => {
     const previous = cycle[(index + cycle.length - 1) % cycle.length];
     const next = cycle[(index + 1) % cycle.length];
@@ -112,7 +113,9 @@ function renderBoard() {
         if (position === 4) {
             const hole = document.createElement('div');
             hole.className = 'cell empty';
-            hole.setAttribute('aria-hidden', 'true');
+            hole.setAttribute('role', 'img');
+            hole.setAttribute('aria-label', 'Vrij veld met paard');
+            hole.appendChild(createKnightIcon());
             board.appendChild(hole);
             continue;
         }
@@ -220,6 +223,7 @@ function scheduleAutocomplete() {
         }
 
         state.selectedPositions.push(nextCompletedPath[state.selectedPositions.length]);
+        updateStatus();
 
         if (state.selectedPositions.length === nextCompletedPath.length) {
             applySolvedState(getCurrentWord() === state.answer);
@@ -394,5 +398,30 @@ deleteWordButton.addEventListener('click', () => {
     cancelAutocomplete();
     void deleteCurrentWord();
 });
+
+function createKnightIcon() {
+    if (knightIconTemplate === null) {
+        const namespace = 'http://www.w3.org/2000/svg';
+        const svg = document.createElementNS(namespace, 'svg');
+        const text = document.createElementNS(namespace, 'text');
+
+        svg.setAttribute('viewBox', '0 0 100 100');
+        svg.setAttribute('class', 'knight-icon');
+        svg.setAttribute('focusable', 'false');
+        svg.setAttribute('aria-hidden', 'true');
+
+        text.setAttribute('x', '50');
+        text.setAttribute('y', '76');
+        text.setAttribute('text-anchor', 'middle');
+        text.setAttribute('font-size', '76');
+        text.setAttribute('font-family', 'Times New Roman, serif');
+        text.textContent = '♞';
+
+        svg.appendChild(text);
+        knightIconTemplate = svg;
+    }
+
+    return knightIconTemplate.cloneNode(true);
+}
 
 void fetchPuzzle();

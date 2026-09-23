@@ -53,10 +53,6 @@ h1 {
     place-items: center;
     border: none;
     background: transparent;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext x='50' y='76' text-anchor='middle' font-size='76' font-family='Times New Roman, serif' fill='%231f2933'%3E%E2%99%9E%3C/text%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: 70%;
 }
 
 .cell.selectable {
@@ -79,6 +75,12 @@ h1 {
 .cell.first-selected {
     background: #d9822b;
     border-color: #d9822b;
+}
+
+.knight-icon {
+    width: 70%;
+    height: 70%;
+    fill: #1f2933;
 }
 
 .cell:disabled {
