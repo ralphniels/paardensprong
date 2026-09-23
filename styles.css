@@ -75,6 +75,7 @@ h1 {
 .cell.first-selected {
     background: #d9822b;
     border-color: #d9822b;
+    box-shadow: inset 0 0 0 3px #fff;
 }
 
 .knight-icon {
